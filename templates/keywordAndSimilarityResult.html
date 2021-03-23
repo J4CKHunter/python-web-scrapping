@@ -1,0 +1,22 @@
+<!doctype html>
+
+<html>
+  <head>
+    <link rel="stylesheet" href="lib/style.css">
+    <script src="lib/script.js"></script>
+  </head>
+
+  <body>
+    {% if keywordFrekanslari %}
+
+        <p>1. Link Anahtar Kelimelerin Frekansı : {{ keywordFrekanslari }}</p><br>
+        <p>1. Link Anahtar Kelimeler : {{ topFive }}</p><br><br>
+        <p>2. Link Anahtar Kelimelerin Frekansı : </p><br>
+        <p>2. Link Anahtar Kelimeler : </p><br><br>
+        <p>İki sayfanın benzerlik skoru : </p><br>
+
+    {% else %}
+        <p>Bu bir get request, link değeri yok</p>
+    {% endif %}
+  </body>
+</html>

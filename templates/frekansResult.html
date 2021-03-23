@@ -1,0 +1,21 @@
+<!doctype html>
+
+<html>
+  <head>
+    <link rel="stylesheet" href="lib/style.css">
+    <script src="lib/script.js"></script>
+  </head>
+
+  <body>
+    {% if total_word_length %}
+
+        <p>Toplam kelime sayisi : {{ total_word_length }}</p><br>
+        <p>Toplam cümle sayisi : {{ total_sent_len }}</p><br>
+        <p>Kelimeler : </p>
+        <p>{{ tf_score }}</p><br>
+
+    {% else %}
+        <p>Bu bir get request, link değeri yok</p>
+    {% endif %}
+  </body>
+</html>
