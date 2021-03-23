@@ -8,6 +8,10 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 stop_words = set(stopwords.words('english'))
+import string
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+
 
 #deneme linkleri :
 #https://stackoverflow.com/questions/1080411/retrieve-links-from-web-page-using-python-and-beautifulsoup
@@ -142,6 +146,81 @@ class keywordSimilarity:
     def get_sonuc(self):
         return self.sonuc
 
+class textSimilarity:
+    def __init__(self,link1 = { },link2= { },result={}):
+        self.link1=link1
+        self.link2=link2
+
+        req = Request(link1, headers={'User-Agent': 'Mozilla/5.0'})
+        html = urlopen(req).read()
+        soup = BeautifulSoup(html, "lxml")
+
+        # kill all script and style elements
+        for script in soup(["script", "style"]):
+            script.extract()  # rip it out
+
+        # get text
+        text1 = soup.get_text()
+
+        # break into lines and remove leading and trailing space on each
+        lines1 = (line.strip() for line in text1.splitlines())
+        # break multi-headlines into a line each
+        chunks1 = (phrase.strip() for line in lines1 for phrase in line.split("  "))
+        # drop blank lines
+        text1 = '\n'.join(chunk for chunk in chunks1 if chunk)
+
+
+        req = Request(link2, headers={'User-Agent': 'Mozilla/5.0'})
+        html = urlopen(req).read()
+        soup = BeautifulSoup(html, "lxml")
+
+        # kill all script and style elements
+        for script in soup(["script", "style"]):
+            script.extract()  # rip it out
+
+        # get text
+        text2 = soup.get_text()
+
+        # break into lines and remove leading and trailing space on each
+        lines2 = (line.strip() for line in text2.splitlines())
+        # break multi-headlines into a line each
+        chunks2 = (phrase.strip() for line in lines2 for phrase in line.split("  "))
+        # drop blank lines
+        text2 = '\n'.join(chunk for chunk in chunks2 if chunk)
+
+        def clean_string(text):
+            # text = ''.join([word for word in text if word not in string.punctuation])
+            exclist = string.punctuation
+            table_ = str.maketrans(exclist, ' ' * len(exclist))
+            text = ' '.join(text.translate(table_).split())
+            text = text.lower()
+            text = ' '.join([word for word in text.split() if word not in stop_words])
+
+            return text
+
+        sentences = {text1,text2}
+        cleaned = list(map(clean_string, sentences))
+
+        vectorizer = CountVectorizer().fit_transform(cleaned)
+        vectors = vectorizer.toarray()
+
+        csim = cosine_similarity(vectors)
+
+        def cosine_sim_vectors(vec1, vec2):
+            vec1 = vec1.reshape(1, -1)
+            vec2 = vec2.reshape(1, -1)
+
+            return cosine_similarity(vec1, vec2)[0][0]
+
+        try:
+            self.result = cosine_sim_vectors(vectors[0], vectors[1])
+        except:
+            self.result = 1.0000000000000000
+
+
+    def get_result(self):
+        return self.result
+
 
 app = Flask(__name__)
 
@@ -182,11 +261,13 @@ def keywordAndSimilarityResult():
         link2 = request.form.get("link2")
         keySim = keywordSimilarity(link1)
         keySim2 = keywordSimilarity(link2)
+        textSim = textSimilarity(link1,link2)
         return render_template('keywordAndSimilarityResult.html',
                                keywordFrekanslari=keySim.get_keywordFrekanslari(),
                                topFive=keySim.get_sonuc(),
                                keywordFrekanslari2=keySim2.get_keywordFrekanslari(),
-                               topFive2=keySim2.get_sonuc()
+                               topFive2=keySim2.get_sonuc(),
+                               result=textSim.get_result()
                                )
     else    :
         return render_template('keywordAndSimilarityResult.html')
