@@ -15,26 +15,10 @@ stop_words = set(stopwords.words('english'))
 #https://www.bbc.com
 #https://nayn.co/mansur-yavas-twitch-kanali-acti-selam-chat/
 
-
-
-app = Flask(__name__)
-
-
-@app.route('/')
-@app.route('/home')
-def home():
-    return render_template("home.html")
-
-@app.route('/frekans')
-def frekans():
-        return render_template('frekans.html')
-
-
-@app.route('/frekansResult', methods=["GET","POST"])
-def frekansResult():
-    if request.method == "POST":
-        link = request.form.get("link")
-        req = Request(link, headers={'User-Agent': 'Mozilla/5.0'})
+class frekansFinder:
+    def __init__(self,link = {},total_word_length= {},total_sent_len= {},tf_score= {}):
+        self.link = link
+        req = Request(self.link, headers={'User-Agent': 'Mozilla/5.0'})
         html = urlopen(req).read()
         soup = BeautifulSoup(html, "lxml")
 
@@ -52,39 +36,35 @@ def frekansResult():
         text = '\n'.join(chunk for chunk in chunks if chunk)
 
         total_words = text.split()
-        total_word_length = len(total_words)
+        self.total_word_length = len(total_words)
 
         total_sentences = tokenize.sent_tokenize(text)
-        total_sent_len = len(total_sentences)
+        self.total_sent_len = len(total_sentences)
 
-        tf_score = {}
+        self.tf_score = {}
         for each_word in total_words:
             each_word = each_word.replace('.', '')
             if each_word not in stop_words:
-                if each_word in tf_score:
-                    tf_score[each_word] += 1
+                if each_word in self.tf_score:
+                    self.tf_score[each_word] += 1
                 else:
-                    tf_score[each_word] = 1
+                    self.tf_score[each_word] = 1
         # her kelimenin kaç kere yer aldığı
 
+    def get_total_word_length(self):
+        return self.total_word_length
 
-        return render_template('frekansResult.html',
-                               total_word_length=total_word_length,
-                               total_sent_len=total_sent_len,
-                               tf_score=tf_score)
-    else :
-        return render_template('frekansResult.html')
+    def get_total_sent_len(self):
+        return self.total_sent_len
 
-@app.route('/keywordAndSimilarity')
-def keywordAndSimilarity():
-        return render_template('keywordAndSimilarity.html')
+    def get_tf_score(self):
+        return self.tf_score
 
-@app.route('/keywordAndSimilarityResult', methods=["GET","POST"])
-def keywordAndSimilarityResult():
+class keywordSimilarity:
 
-    if request.method == "POST":
-        link = request.form.get("link1")
-        req = Request(link, headers={'User-Agent': 'Mozilla/5.0'})
+    def __init__(self,link= {},keywordFrekanslari= {},sonuc= {}):
+        self.link=link
+        req = Request(self.link, headers={'User-Agent': 'Mozilla/5.0'})
         html = urlopen(req).read()
         soup = BeautifulSoup(html, "lxml")
 
@@ -145,25 +125,69 @@ def keywordAndSimilarityResult():
             result = dict(sorted(dict_elem.items(), key=itemgetter(1), reverse=True)[:n])
             return result
 
-        sonuc = get_top_n(tf_idf_score, 5)
+        self.sonuc = get_top_n(tf_idf_score, 5)
 
         kelimeler = []
         sayilari = []
 
-        for key in sonuc.keys():
+        for key in self.sonuc.keys():
             kelimeler.append(key)
             sayilari.append(tumKelimeler1.get(key))
 
+        self.keywordFrekanslari = dict(zip(kelimeler, sayilari))
 
-        keywordFrekanslari = dict(zip(kelimeler, sayilari))
+    def get_keywordFrekanslari(self):
+        return self.keywordFrekanslari
 
+    def get_sonuc(self):
+        return self.sonuc
+
+
+app = Flask(__name__)
+
+
+@app.route('/')
+@app.route('/home')
+def home():
+    return render_template("home.html")
+
+@app.route('/frekans')
+def frekans():
+        return render_template('frekans.html')
+
+
+@app.route('/frekansResult', methods=["GET","POST"])
+def frekansResult():
+
+    if request.method == "POST":
+        link = request.form.get("link")
+        frekans = frekansFinder(link)
+        return render_template('frekansResult.html',
+                               total_word_length=frekans.get_total_word_length(),
+                               total_sent_len=frekans.get_total_sent_len(),
+                               tf_score=frekans.get_tf_score())
+
+    else :
+        return render_template('frekansResult.html')
+
+@app.route('/keywordAndSimilarity')
+def keywordAndSimilarity():
+        return render_template('keywordAndSimilarity.html')
+
+@app.route('/keywordAndSimilarityResult', methods=["GET","POST"])
+def keywordAndSimilarityResult():
+
+    if request.method == "POST":
+        link1 = request.form.get("link1")
+        link2 = request.form.get("link2")
+        keySim = keywordSimilarity(link1)
+        keySim2 = keywordSimilarity(link2)
         return render_template('keywordAndSimilarityResult.html',
-                               keywordFrekanslari=keywordFrekanslari,
-                               topFive=get_top_n(tf_idf_score, 5))
-
-
-
-
+                               keywordFrekanslari=keySim.get_keywordFrekanslari(),
+                               topFive=keySim.get_sonuc(),
+                               keywordFrekanslari2=keySim2.get_keywordFrekanslari(),
+                               topFive2=keySim2.get_sonuc()
+                               )
     else    :
         return render_template('keywordAndSimilarityResult.html')
 
