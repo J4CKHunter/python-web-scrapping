@@ -1,0 +1,24 @@
+<!doctype html>
+
+<html>
+  <head>
+    <link rel="stylesheet" href="lib/style.css">
+    <script src="lib/script.js"></script>
+  </head>
+
+  <body>
+    <h3>Linkler ve Ağaç Yapıları</h3><br>
+    {% for x in range(rows) %}
+        <p>{{ linkset[x] }}</p>
+    {% endfor %}
+    <br>
+    <h3>Benzerlik Skor Sıralamaları</h3><br>
+
+    {% for keys,values in dictAitems %}
+        <p>{{ keys }} =======>>>> {{ values }}</p>
+
+    {% endfor %}
+    <br><br>
+
+  </body>
+</html>
