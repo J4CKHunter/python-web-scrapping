@@ -11,7 +11,8 @@ stop_words = set(stopwords.words('english'))
 import string
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
-
+import random
+from collections import defaultdict
 
 #deneme linkleri :
 #https://stackoverflow.com/questions/1080411/retrieve-links-from-web-page-using-python-and-beautifulsoup
@@ -174,9 +175,11 @@ class textSimilarity:
         html = urlopen(req).read()
         soup = BeautifulSoup(html, "lxml")
 
+
+
         # kill all script and style elements
         for script in soup(["script", "style"]):
-            script.extract()  # rip it out
+                script.extract()  # rip it out
 
         # get text
         text2 = soup.get_text()
@@ -187,6 +190,9 @@ class textSimilarity:
         chunks2 = (phrase.strip() for line in lines2 for phrase in line.split("  "))
         # drop blank lines
         text2 = '\n'.join(chunk for chunk in chunks2 if chunk)
+
+
+
 
         def clean_string(text):
             # text = ''.join([word for word in text if word not in string.punctuation])
@@ -271,6 +277,118 @@ def keywordAndSimilarityResult():
                                )
     else    :
         return render_template('keywordAndSimilarityResult.html')
+
+
+@app.route('/synonym')
+def synonym():
+    return render_template('synonym.html')
+
+
+@app.route('/synonymResult', methods=["POST"])
+def synonymResult():
+
+    link = request.form.get("link")
+
+    linkset = ""
+    linkset=request.form.get("linkset")
+
+    seperatedLinkset = []
+    seperatedLinkset = linkset.split("\r\n")
+    print("seperated linkset yazdiriliyor")
+    print(seperatedLinkset)
+
+    rows, cols = (len(seperatedLinkset), 3)
+    linkTree = [['a' for i in range(cols)] for j in range(rows)]
+    print(linkTree)
+
+    def fonk(link):
+        bos = ''
+        a = 'a'
+        if(link == a or link == bos):
+            return ''
+        else:
+            link = link
+            req = Request(link, headers={'User-Agent': 'Mozilla/5.0'})
+            html = urlopen(req).read()
+            soup = BeautifulSoup(html, "lxml")
+
+            links = [item['href'] if item.get('href') is not None else item['src'] for item in
+                     soup.select('[href^="http"], [src^="http"]')]
+            print(links)
+
+            if(len(links) != 0):
+                if(len(links) == 1):
+                    return links.pop(0)
+                else:
+                    return links.pop(random.randint(1, len(links)) - 1)
+            else:
+                return ''
+
+    x = len(seperatedLinkset)
+    for i in range(x):
+        linkTree[i][0] = seperatedLinkset[i]
+        print("işte deneme felan")
+        print(seperatedLinkset[i])
+        linkTree[i][1] = fonk(seperatedLinkset[i])
+        linkTree[i][2] = fonk(linkTree[i][1])
+        print(i)
+        print(". döngüdeyiz linktree durumu")
+        print(linkTree)
+
+    print("linktree yazdırılıyor")
+    print(linkTree)
+
+
+    skorlar = [['a' for i in range(cols)] for j in range(rows)]
+
+    for i in range(rows):
+        for j in range(cols):
+            if(linkTree[i][j] == ''):
+                skorlar[i][j]=0.0
+            else:
+                temp = textSimilarity(link,linkTree[i][j])
+                skorlar[i][j] = temp.get_result()
+                print(skorlar[i][j])
+
+    print(" ")
+    print(" ")
+    for i in range(rows):
+        for j in range(cols):
+            print(skorlar[i][j])
+
+    dictA = defaultdict(list)
+
+    for i in range(rows):
+        for j in range(cols):
+            temp1 = linkTree[i][j]
+            temp2 = skorlar[i][j]
+            dictA[temp1].append(temp2)
+
+    print("dict a yazdiriliyor")
+    print(dictA)
+
+    def get_top_n(dict_elem):
+        result = dict(sorted(dict_elem.items(), key=itemgetter(1), reverse=True))
+        return result
+
+    print(get_top_n(dictA))
+
+    array = []
+
+    for i in range(len(dictA)):
+        for key in dictA.keys():
+            if(key == ''):
+                continue
+            else:
+                keySim = keywordSimilarity(key)
+                array.append(keySim.get_keywordFrekanslari())
+
+    return render_template('synonymResult.html',linkset=linkTree,rows=rows,
+                           dictAkeys=get_top_n(dictA).keys(),
+                           dictAvalues=get_top_n(dictA).values(),
+                           dictAitems=get_top_n(dictA).items(),
+                           keywords=array,len=len(dictA.keys()),)
+
 
 
 if __name__ == '__main__':
