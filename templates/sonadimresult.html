@@ -7,15 +7,14 @@
   </head>
 
   <body>
-    <h3>Ana Link ve Keywordleri</h3><br>
-    <p>{{ analink }} =======>>>> {{ alka }}</p><br>
+    <h3>Ana Link, Keywordleri ve Keywordlerin Yakin Anlamlilari</h3>
+    <p>{{ analink }} =======>>>> {{ alka }} =======>>>> {{ esAnlamli }}</p>
     <h3>Linkler ve Ağaç Yapıları</h3><br>
     {% for x in range(rows) %}
         <p>{{ linkset[x] }}</p>
     {% endfor %}
     <br>
     <h3>Benzerlik Skor Sıralamaları</h3><br>
-
 
     {% for keys,values in dictAitems %}
         <p>{{ keys }} =======>>>> {{ values }}</p>
